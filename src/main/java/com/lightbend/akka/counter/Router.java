@@ -17,14 +17,16 @@ public class Router extends AbstractActor {
 	int nbCounterToWait;
 	String filePath;
 	char toCount;
-
+	ProgramStatus status;
+	
 	ArrayList<ActorRef> counterList = new ArrayList<ActorRef>();
 
-	static public Props props() {
-		return Props.create(Router.class, () -> new Router());
+	static public Props props(ProgramStatus status) {
+		return Props.create(Router.class, () -> new Router(status));
 	}
 
-	public Router() {
+	public Router(ProgramStatus status) {
+		this.status = status;
 		totalCount = 0;
 		totalFileLines = 0;
 		nbCounterToWait = 0;
@@ -40,6 +42,7 @@ public class Router extends AbstractActor {
 					if(nbCounterToWait == 0){
 						System.out.println("There is "+totalCount+" occurence(s) for the char '"
 								+toCount+"' in the text '"+filePath+"'");
+						status.setOver(true);
 					}
 				}).
 				match(Counter.class, c -> {
