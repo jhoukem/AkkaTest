@@ -15,6 +15,8 @@ public class Router extends AbstractActor {
 	int totalCount;
 	int totalFileLines;
 	int nbCounterToWait;
+	String filePath;
+	char toCount;
 
 	ArrayList<ActorRef> counterList = new ArrayList<ActorRef>();
 
@@ -36,7 +38,8 @@ public class Router extends AbstractActor {
 					this.totalCount += c.count;
 					this.nbCounterToWait--;
 					if(nbCounterToWait == 0){
-						System.out.println("Total count is : " + totalCount);
+						System.out.println("There is "+totalCount+" occurence(s) for the char '"
+								+toCount+"' in the text '"+filePath+"'");
 					}
 				}).
 				match(Counter.class, c -> {
@@ -44,12 +47,14 @@ public class Router extends AbstractActor {
 					nbCounterToWait = counterList.size();
 				}).
 				match(RouterStart.class, rs -> {
-					launchStart(rs.filePath, rs.toCount);
+					this.toCount = rs.toCount;
+					this.filePath = rs.filePath;
+					startCount();
 				})
 				.build();
 	}
 
-	private void launchStart(String filePath, char toCount) {
+	private void startCount() {
 		BufferedReader br = null;
 		try {
 			br = new BufferedReader(new FileReader(filePath));
@@ -63,11 +68,12 @@ public class Router extends AbstractActor {
 			br =  new BufferedReader(new FileReader(filePath));
 
 			int ligneToReadPerCounter = totalFileLines/counterList.size();
-			int lineCount = 0;
-			int counterIndex = 0;
+			int lineCount = 0;// The number of line currently read.
+			int counterIndex = 0; // The index in the list of the counter to call.
 
 			StringBuilder sb = new StringBuilder();
-			// Read the file again and give to each counter the same amount of line to read.
+			// Read the file again and give to each counter the same amount of line to read
+			// (except the last counter if counterNumber%totalLigne != 0).
 			String line = br.readLine();
 			while (line != null) {
 				lineCount++;
@@ -75,19 +81,21 @@ public class Router extends AbstractActor {
 				sb.append(System.lineSeparator());
 				line = br.readLine();
 
+				// The last counter is started at the end to avoid => totalFileLignes%nbCounter != 0.
 				if(lineCount == ligneToReadPerCounter && (counterIndex != counterList.size()-1)){
-					lineCount = 0; // Reset the line counter.
-					ActorRef counter = counterList.get(counterIndex++);
+					// Reset the line counter so we read another "ligneToReadPerCounter" before starting a new counter.
+					lineCount = 0; 
 					String toRead = sb.toString();
-					// Reset the string builder.
+					// Reset the string builder so the next counter only have the text that concern him.
 					sb = new StringBuilder();
+					ActorRef counter = counterList.get(counterIndex++);
 					counter.tell(new CounterStart(toRead, toCount), getSelf());
 				}
 			}
 			String toRead = sb.toString();
-			// The last counter read the end of the file.
+			// The last counter read till the end of the file.
 			counterList.get(counterIndex).tell(new CounterStart(toRead, toCount), getSelf());
-			
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

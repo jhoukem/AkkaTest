@@ -8,10 +8,10 @@ import akka.actor.ActorSystem;
 public class Main {
 
 	private final static int NB_COUNTER = 3;
-	private final static char TO_COUNT = 'e';
+	private final static char TO_COUNT = 'y';
 
 	public static void main(String[] args) {
-		final ActorSystem system = ActorSystem.create("helloakka");
+		final ActorSystem system = ActorSystem.create("CounterSystem");
 
 		// Create actors.
 		final ActorRef router = system.actorOf(Router.props(), "routerActor");
