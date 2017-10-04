@@ -12,6 +12,8 @@ import akka.actor.Props;
 
 public class Router extends AbstractActor {
 
+	private static final boolean DEBUG = true;
+	
 	int totalCount;
 	int totalFileLines;
 	int nbCounterToWait;
@@ -21,15 +23,18 @@ public class Router extends AbstractActor {
 
 	ArrayList<ActorRef> counterList = new ArrayList<ActorRef>();
 
-	static public Props props(ProgramStatus status) {
-		return Props.create(Router.class, () -> new Router(status));
+	static public Props props(ProgramStatus status, String filePath, char charToCount, int nbCounterToWait) {
+		return Props.create(Router.class, () -> new Router(status, filePath, charToCount, nbCounterToWait));
 	}
 
-	public Router(ProgramStatus status) {
+	public Router(ProgramStatus status, String filePath, char charToCount, int nbCounterToWait) {
 		this.status = status;
+		this.nbCounterToWait = nbCounterToWait;
+		this.charToCount = charToCount;
+		this.filePath = filePath;
 		totalCount = 0;
 		totalFileLines = 0;
-		nbCounterToWait = 0;
+
 	}
 
 
@@ -47,19 +52,9 @@ public class Router extends AbstractActor {
 				}).
 				match(Counter.class, c -> {
 					this.counterList.add(c.getSelf());
-				}).
-				match(RouterStart.class, rs -> {
-					this.charToCount = rs.toCount;
-					this.filePath = rs.filePath;
-					nbCounterToWait = rs.nbCounterToWait;
-
-					// Wait till all the counter are added to the list.
-//					while(nbCounterToWait != counterList.size() - 1){
-//						Thread.sleep(100);
-//						System.out.println("CounterListSize = "+counterList.size());
-//					}
-					
-					startCount();
+					if(nbCounterToWait == counterList.size()){
+						startCount();
+					}
 				})
 				.build();
 	}
@@ -77,9 +72,11 @@ public class Router extends AbstractActor {
 
 			int lineToReadPerCounter = totalFileLines/nbCounterToWait;
 
-			System.out.println("nb Counter to wait = "+nbCounterToWait);
-			System.out.println("line to read per counter = "+lineToReadPerCounter);
-			
+			if(DEBUG){
+				System.out.println("[Router]: Number of counter = "+nbCounterToWait);
+				System.out.println("[Router]: Line(s) to read per counter = "+lineToReadPerCounter);
+			}
+
 			for(int i = 0; i < nbCounterToWait; i++){
 
 				int fromLine = i * lineToReadPerCounter;
