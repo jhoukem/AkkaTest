@@ -5,28 +5,33 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
+import akka.routing.ActorRefRoutee;
+import akka.routing.RoundRobinRoutingLogic;
+import akka.routing.Routee;
+import akka.routing.Router;
 
-public class Router extends AbstractActor {
+public class Master extends AbstractActor {
 
 	private static final boolean DEBUG = true;
 
+	Router router;
 	int totalCount;
 	int nbCounterToWait;
 	String filePath;
 	char charToCount;
 	ProgramStatus status;
 
-	ArrayList<ActorRef> counterList = new ArrayList<ActorRef>();
-
 	static public Props props(ProgramStatus status, String filePath, char charToCount, int nbCounterToWait) {
-		return Props.create(Router.class, () -> new Router(status, filePath, charToCount, nbCounterToWait));
+		return Props.create(Master.class, () -> new Master(status, filePath, charToCount, nbCounterToWait));
 	}
 
-	public Router(ProgramStatus status, String filePath, char charToCount, int nbCounterToWait) {
+	public Master(ProgramStatus status, String filePath, char charToCount, int nbCounterToWait) {
 		this.status = status;
 		this.nbCounterToWait = nbCounterToWait;
 		this.charToCount = charToCount;
@@ -34,9 +39,13 @@ public class Router extends AbstractActor {
 		totalCount = 0;
 
 		// Create the counters.
+		List<Routee> routees = new ArrayList<Routee>();
 		for (int i = 0; i < nbCounterToWait; i++) {
-			counterList.add(getContext().getSystem().actorOf(Counter.props(), "counter" + i));
+			ActorRef r = getContext().actorOf(Counter.props());
+			getContext().watch(r);
+			routees.add(new ActorRefRoutee(r));
 		}
+		router = new Router(new RoundRobinRoutingLogic(), routees);
 
 		startCount();
 	}
@@ -45,8 +54,15 @@ public class Router extends AbstractActor {
 	@Override
 	public Receive createReceive() {
 		return receiveBuilder().
-				match(Count.class, c -> {
+				match(CounterResult.class, c -> {
+					// Increment the total occurrence count.
 					this.totalCount += c.count;
+					// Stop the counter
+					getContext().stop(getSender());
+				}).
+				// A counter has stopped.
+				match(Terminated.class, message -> {
+					router = router.removeRoutee(message.actor());
 					this.nbCounterToWait--;
 					if(nbCounterToWait == 0){
 						System.out.println("There is "+totalCount+" occurence(s) for the char '"
@@ -87,10 +103,8 @@ public class Router extends AbstractActor {
 				} else {
 					toLine = (i+1) * lineToReadPerCounter;
 				}
-
-				counterList.get(i).tell(new CounterStart(filePath, fromLine, toLine, charToCount), getSelf());
+				router.route(new CounterStart(filePath, fromLine, toLine, charToCount), getSelf());
 			}
-
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -104,6 +118,5 @@ public class Router extends AbstractActor {
 			}
 		}
 	}
-
 
 }

@@ -10,9 +10,9 @@ import akka.actor.Props;
 
 public class Counter extends AbstractActor {
 
-	int count, fromLine, toLine;
 	String filePath;
 	char charToCount;
+	int count, fromLine, toLine;
 
 	static public Props props() {
 		return Props.create(Counter.class, () -> new Counter());
@@ -80,7 +80,7 @@ public class Counter extends AbstractActor {
 			// Proceed to count.
 			count();
 			// Send the count to the router.
-			getSender().tell(new Count(count), getSelf());
+			getSender().tell(new CounterResult(count), getSelf());
 		}).build();
 	}
 

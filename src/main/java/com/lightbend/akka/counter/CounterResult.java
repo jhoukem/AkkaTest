@@ -1,10 +1,10 @@
 package com.lightbend.akka.counter;
 
-public class Count {
+public class CounterResult {
 
 	public int count;
 
-	public Count(int count) {
+	public CounterResult(int count) {
 		this.count = count;
 	}
 }
