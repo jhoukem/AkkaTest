@@ -5,8 +5,8 @@ import akka.actor.ActorSystem;
 
 public class Main {
 
-	private final static int NB_COUNTER = 3;
-	private final static char TO_COUNT = 'y';
+	private final static int NB_COUNTER = 10;
+	private final static char TO_COUNT = 'o';
 
 	public static void main(String[] args) {
 
@@ -21,7 +21,7 @@ public class Main {
 		}
 
 		System.out.println("Processing to count '"+TO_COUNT+"' occurences in the given text...");
-		router.tell(new RouterStart("fra-tv_web_2016_10K-sentences.txt", TO_COUNT), ActorRef.noSender());
+		router.tell(new RouterStart("fra_news_2005-2008_300K-sentences.txt", TO_COUNT, NB_COUNTER), ActorRef.noSender());
 		
 		while(!status.isOver()){
 			try {
