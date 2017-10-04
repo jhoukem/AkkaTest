@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 
 public class Counter extends AbstractActor {
@@ -14,20 +13,16 @@ public class Counter extends AbstractActor {
 	int count, fromLine, toLine;
 	String filePath;
 	char charToCount;
-	ActorRef router;
 
-	static public Props props(ActorRef router) {
-		return Props.create(Counter.class, () -> new Counter(router));
+	static public Props props() {
+		return Props.create(Counter.class, () -> new Counter());
 	}
 
-	public Counter(ActorRef router) {
-		this.router = router;
+	public Counter() {
 		count = 0;
 		fromLine = 0;
 		toLine = 0;
-		router.tell(this, getSelf());
 	}
-
 
 	private void countOccurenceOnLine(String line) {
 		for (int i = 0; i < line.length(); i++) {
@@ -85,7 +80,7 @@ public class Counter extends AbstractActor {
 			// Proceed to count.
 			count();
 			// Send the count to the router.
-			router.tell(new Count(count), getSelf());
+			getSender().tell(new Count(count), getSelf());
 		}).build();
 	}
 

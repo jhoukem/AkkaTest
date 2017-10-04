@@ -13,9 +13,8 @@ import akka.actor.Props;
 public class Router extends AbstractActor {
 
 	private static final boolean DEBUG = true;
-	
+
 	int totalCount;
-	int totalFileLines;
 	int nbCounterToWait;
 	String filePath;
 	char charToCount;
@@ -33,8 +32,13 @@ public class Router extends AbstractActor {
 		this.charToCount = charToCount;
 		this.filePath = filePath;
 		totalCount = 0;
-		totalFileLines = 0;
 
+		// Create the counters.
+		for (int i = 0; i < nbCounterToWait; i++) {
+			counterList.add(getContext().getSystem().actorOf(Counter.props(), "counter" + i));
+		}
+
+		startCount();
 	}
 
 
@@ -49,12 +53,6 @@ public class Router extends AbstractActor {
 								+charToCount+"' in the text '"+filePath+"'");
 						status.setOver(true);
 					}
-				}).
-				match(Counter.class, c -> {
-					this.counterList.add(c.getSelf());
-					if(nbCounterToWait == counterList.size()){
-						startCount();
-					}
 				})
 				.build();
 	}
@@ -64,6 +62,7 @@ public class Router extends AbstractActor {
 		try {
 			br = new BufferedReader(new FileReader(filePath));
 
+			int totalFileLines = 0;
 			// Get total line count.
 			while (br.readLine() != null) {
 				totalFileLines++;
@@ -73,6 +72,7 @@ public class Router extends AbstractActor {
 			int lineToReadPerCounter = totalFileLines/nbCounterToWait;
 
 			if(DEBUG){
+				System.out.println("[Router]: Total number of line(s) = "+totalFileLines);
 				System.out.println("[Router]: Number of counter = "+nbCounterToWait);
 				System.out.println("[Router]: Line(s) to read per counter = "+lineToReadPerCounter);
 			}

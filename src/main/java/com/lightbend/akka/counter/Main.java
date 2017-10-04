@@ -1,6 +1,5 @@
 package com.lightbend.akka.counter;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 public class Main {
@@ -14,14 +13,11 @@ public class Main {
 		ProgramStatus status = new ProgramStatus();
 		final ActorSystem system = ActorSystem.create("CounterSystem");
 
-		// Create actors.
-		final ActorRef router = system.actorOf(Router.props(status, FILE_PATH, CHAR_TO_COUNT, NB_COUNTER), "routerActor");
+		// Create the counter router.
+		system.actorOf(Router.props(status, FILE_PATH, CHAR_TO_COUNT, NB_COUNTER), "routerActor");
 
-		System.out.println("Processing to count '"+CHAR_TO_COUNT+"' occurences in the text '"+ FILE_PATH +"'.");
-		for (int i = 0; i < NB_COUNTER; i++) {
-			system.actorOf(Counter.props(router), "counter" + i);
-		}
 		
+		System.out.println("Processing to count '"+CHAR_TO_COUNT+"' occurences in the text '"+ FILE_PATH +"'.");
 		long startTime = System.currentTimeMillis();
 		while(!status.isOver()){
 			try {
@@ -32,6 +28,7 @@ public class Main {
 			}
 		}
 		system.terminate();
+		
 		System.out.println("Occurence count took "+ (System.currentTimeMillis() - startTime) + " ms.");
 	}
 }
